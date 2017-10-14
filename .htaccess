@@ -1,4 +1,6 @@
 RewriteEngine on
 
 RewriteCond %{REQUEST_URI} !dist/
+RewriteCond %{REQUEST_URI} !server/
+
 RewriteRule (.*) /dist/$1 [L]
