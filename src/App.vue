@@ -80,43 +80,16 @@
                     category: null,
                     url: null
                 },
-                links: [
-                    {
-                        name: 'cat1',
-                        data: [
-                            {
-                                name: 'Mon lien 1',
-                                url: ''
-                            },
-                            {
-                                name: 'Mon lien 2',
-                                url: ''
-                            },
-                            {
-                                name: 'Mon lien 3',
-                                url: ''
-                            }
-                        ]
-                    },
-                    {
-                        name: 'cat2',
-                        data: [
-                            {
-                                name: 'Mon lien 4',
-                                url: ''
-                            },
-                            {
-                                name: 'Mon lien 5',
-                                url: ''
-                            },
-                            {
-                                name: 'Mon lien 6',
-                                url: ''
-                            }
-                        ]
-                    }
-                ]
+                links: []
             }
+        },
+        mounted () {
+            this.$http.get('server/server.php').then(response => {
+                this.links = response.body
+            }, response => {
+                this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.')
+                this.links = []
+            })
         },
         methods: {
             searchCategories () {
@@ -142,6 +115,7 @@
                         name: null
                     }
                 }
+                return categoryName
             },
             categoryExist (category) {
                 let catFind = false
@@ -158,7 +132,7 @@
             },
             addLink () {
                 if (this.checkField(this.newLink.name) && this.checkField(this.newLink.url) && this.checkField(this.newLink.category)) {
-                    this.addCategory(this.newLink.category)
+                    let categoryName = this.addCategory(this.newLink.category)
                     let self = this
                     this.links.filter(function (link) {
                         if (link.name === self.newLink.category) {
@@ -168,6 +142,16 @@
                             link.data.push({
                                 name: self.newLink.name,
                                 url: self.newLink.url
+                            })
+                            self.$http.get('server/server.php', {
+                                params: {
+                                    categoryName: categoryName,
+                                    linkName: self.newLink.name,
+                                    linkUrl: self.newLink.url
+                                }
+                            }).then(response => {
+                            }, response => {
+                                self.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.')
                             })
                             self.resetFields()
                         }
