@@ -6,6 +6,12 @@
         <div class="panel panel-default">
             <div class="panel-heading">
                 <a href="#" @click.prevent="newLink.open = !newLink.open">Ajouter un nouveau lien</a>
+                <button class="btn btn-xs btn-default pull-right" @click.prevent="changeVersion()" v-if="!adminVersion">
+                    Afficher la version admin
+                </button>
+                <button class="btn btn-xs btn-default pull-right" @click.prevent="changeVersion()" v-if="adminVersion">
+                    Cacher la version admin
+                </button>
             </div>
             <transition name="fade">
                 <div class="panel-body" v-if="newLink.open">
@@ -43,6 +49,7 @@
                         <input id="newLinkDescription" type="text" v-model="newLink.description" class="form-control" placeholder="Ex: Superbe album photo en ligne">
                     </div>
                     <button class="btn btn-default" @click.prevent="addLink()">Ajouter ce lien</button>
+                    <button class="btn btn-default" @click.prevent="newLink.open = !newLink.open">Annuler</button>
                 </div>
             </transition>
         </div>
@@ -55,19 +62,31 @@
             </div>
         </transition>
 
+        <transition name="fade">
+            <div class="alert alert-warning" v-if="confirmAlert">
+                Confirmez-vous la suppression de la catégorie "{{ confirmElement }}" ?
+                <hr>
+                <button class="btn btn-sm btn-warning" @click.prevent="deleteCategory()">Confirmer</button>
+                <button class="btn btn-sm btn-default" @click.prevent="confirmAlert = false">Annuler</button>
+            </div>
+        </transition>
+
         <div class="row">
             <div class="col-md-6" v-for="category in links">
                 <div class="panel panel-default">
-                    <div class="panel-heading">{{ category.name }}</div>
+                    <div class="panel-heading">
+                        {{ category.name }}
+                        <button class="btn btn-xs btn-warning pull-right" v-if="adminVersion" @click.prevent="confirmAlert = true; confirmElement = category.name">
+                            Supprimer la catégorie
+                        </button>
+                    </div>
                     <div class="panel-body">
                         <ul>
                             <li v-for="link in category.data">
-                                <a :href="link.url" target="_blank">
-                                    {{ link.name }}
-                                    <span class="text-muted" v-if="link.description != null">
-                                        {{ link.description }}
-                                    </span>
-                                </a>
+                                <a :href="link.url" target="_blank">{{ link.name }}</a>
+                                <span class="text-muted" v-if="link.description != null">
+                                    ( {{ link.description }} )
+                                </span>
                             </li>
                             <li v-if="category.data.length === 0">Aucun lien disponible dans cette catégorie...</li>
                         </ul>
@@ -87,6 +106,7 @@
         data () {
             return {
                 errors: [],
+                adminVersion: false,
                 newCategory: {
                     show: false,
                     name: null
@@ -127,7 +147,10 @@
                         ]
                     }
                 ],
-                serverAvailable: false
+                serverAvailable: false,
+                timeout: null,
+                confirmAlert: false,
+                confirmElement: null
             }
         },
         mounted () {
@@ -135,7 +158,7 @@
                 this.links = response.body
                 this.serverAvailable = true
             }, response => {
-                this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.', 7500)
+                this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.', 15000)
             })
         },
         methods: {
@@ -164,6 +187,23 @@
                 }
                 return categoryName
             },
+            deleteCategory () {
+                if (this.confirmElement != null) {
+                    let self = this
+                    this.links = this.links.filter(function (category) {
+                        return (category.name != self.confirmElement) ? category : null
+                    })
+                    if (this.serverAvailable) {
+                        this.$http.get('server/server.php', {
+                            params: {
+                                deleteCategory: this.confirmElement,
+                            }
+                        })
+                    }
+                    this.confirmAlert = false
+                    this.confirmElement = null
+                }
+            },
             categoryExist (category) {
                 let catFind = false
                 for (let link of this.links) {
@@ -176,6 +216,19 @@
             },
             checkField (field) {
                 return (field != null && field != '')
+            },
+            changeVersion () {
+                this.adminVersion = !this.adminVersion;
+                if (this.adminVersion) {
+                    let self = this
+                    this.timeout = setTimeout(function () {
+                        self.adminVersion = false;
+                    }, 10000)
+                } else {
+                    if (this.timeout != null) {
+                        clearTimeout(this.timeout)
+                    }
+                }
             },
             addLink () {
                 if (this.checkField(this.newLink.name) && this.checkField(this.newLink.url) && this.checkField(this.newLink.category)) {
