@@ -1,6 +1,7 @@
 <template>
     <div>
         <h1>Ma liste de liens</h1>
+        <hr>
 
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -11,10 +12,11 @@
                     <label for="newLinkCategory">Catégorie :</label>
                     <div class="input-group" v-if="!newCategory.show">
                         <select id="newLinkCategory" class="form-control" v-model="newLink.category">
-                            <option :value="null">Choissiez une catégorie</option>
+                            <option v-if="links.length != 0" :value="null">Choissiez une catégorie</option>
                             <option v-for="(category, index) in searchCategories()" :value="category" :key="true">
                                 {{ category }}
                             </option>
+                            <option v-if="links.length === 0" :value="null">Aucune catégorie disponible...</option>
                         </select>
                         <span class="input-group-btn">
                         <button class="btn btn-default" @click.prevent="newCategory.show = !newCategory.show">Nouvelle catégorie</button>
@@ -41,11 +43,13 @@
             </transition>
         </div>
 
-        <div class="alert alert-warning" v-if="errors.length != 0">
-            <ul>
-                <li v-for="error in errors">{{ error }}</li>
-            </ul>
-        </div>
+        <transition name="fade">
+            <div class="alert alert-warning" v-if="errors.length != 0">
+                <ul>
+                    <li v-for="error in errors">{{ error }}</li>
+                </ul>
+            </div>
+        </transition>
 
         <div class="row">
             <div class="col-md-6" v-for="category in links">
@@ -56,9 +60,13 @@
                             <li v-for="link in category.data"><a :href="link.url" target="_blank">
                                 {{ link.name }}</a>
                             </li>
+                            <li v-if="category.data.length === 0">Aucun lien disponible dans cette catégorie...</li>
                         </ul>
                     </div>
                 </div>
+            </div>
+            <div class="col-md-12" v-if="links.length === 0">
+                <h4>Aucune catégorie de lien ne semble disponible.</h4>
             </div>
         </div>
     </div>
@@ -80,14 +88,16 @@
                     category: null,
                     url: null
                 },
-                links: []
+                links: [],
+                serverAvailable: false
             }
         },
         mounted () {
             this.$http.get('server/server.php').then(response => {
                 this.links = response.body
+                this.serverAvailable = true
             }, response => {
-                this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.')
+                this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.', 7500)
                 this.links = []
             })
         },
@@ -143,21 +153,23 @@
                                 name: self.newLink.name,
                                 url: self.newLink.url
                             })
-                            self.$http.get('server/server.php', {
-                                params: {
-                                    categoryName: categoryName,
-                                    linkName: self.newLink.name,
-                                    linkUrl: self.newLink.url
-                                }
-                            }).then(response => {
-                            }, response => {
-                                self.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.')
-                            })
+                            if (self.serverAvailable) {
+                                self.$http.get('server/server.php', {
+                                    params: {
+                                        categoryName: categoryName,
+                                        linkName: self.newLink.name,
+                                        linkUrl: self.newLink.url
+                                    }
+                                }).then(response => {
+                                }, response => {
+                                    self.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.', 7500)
+                                })
+                            }
                             self.resetFields()
                         }
                     })
                 } else {
-                    this.addError('Les champs "Nom du lien", "Lien correspondant" et "Catégorie" doivent êtres renseignés.')
+                    this.addError('Les champs "Nom du lien", "Lien correspondant" et "Catégorie" doivent êtres renseignés.', 5000)
                 }
             },
             resetFields () {
@@ -168,12 +180,12 @@
                     url: null
                 }
             },
-            addError (message) {
+            addError (message, delay) {
                 this.errors.push(message)
                 let self = this
                 setTimeout(function () {
                     self.errors.splice(0, self.errors.length)
-                }, 5000)
+                }, delay)
             }
         }
     }
