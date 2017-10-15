@@ -38,6 +38,10 @@
                         <label for="newLinkLink">Lien correspondant :</label>
                         <input id="newLinkLink" type="text" v-model="newLink.url" class="form-control" placeholder="Ex: https://exemple.fr">
                     </div>
+                    <div class="form-group">
+                        <label for="newLinkDescription">Courte description :</label>
+                        <input id="newLinkDescription" type="text" v-model="newLink.description" class="form-control" placeholder="Ex: Superbe album photo en ligne">
+                    </div>
                     <button class="btn btn-default" @click.prevent="addLink()">Ajouter ce lien</button>
                 </div>
             </transition>
@@ -57,8 +61,13 @@
                     <div class="panel-heading">{{ category.name }}</div>
                     <div class="panel-body">
                         <ul>
-                            <li v-for="link in category.data"><a :href="link.url" target="_blank">
-                                {{ link.name }}</a>
+                            <li v-for="link in category.data">
+                                <a :href="link.url" target="_blank">
+                                    {{ link.name }}
+                                    <span class="text-muted" v-if="link.description != null">
+                                        {{ link.description }}
+                                    </span>
+                                </a>
                             </li>
                             <li v-if="category.data.length === 0">Aucun lien disponible dans cette catégorie...</li>
                         </ul>
@@ -86,9 +95,38 @@
                     open: false,
                     name: null,
                     category: null,
-                    url: null
+                    url: null,
+                    description: null
                 },
-                links: [],
+                links: [
+                    {
+                        name: 'cat1',
+                        data: [
+                            {
+                                name: 'link1',
+                                url: '',
+                                description: 'Ma superbe description'
+                            },
+                            {
+                                name: 'link2',
+                                url: ''
+                            },
+                            {
+                                name: 'link3',
+                                url: ''
+                            }
+                        ]
+                    },
+                    {
+                        name: 'cat2',
+                        data: [
+                            {
+                                name: 'link2',
+                                url: ''
+                            }
+                        ]
+                    }
+                ],
                 serverAvailable: false
             }
         },
@@ -98,7 +136,6 @@
                 this.serverAvailable = true
             }, response => {
                 this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.', 7500)
-                this.links = []
             })
         },
         methods: {
@@ -149,16 +186,19 @@
                             if (!['http://', 'https:/'].includes(self.newLink.url.substring(0, 7))) {
                                 self.newLink.url = 'http://' + self.newLink.url
                             }
+                            let description = (self.checkField(self.newLink.description)) ? self.newLink.description : null
                             link.data.push({
                                 name: self.newLink.name,
-                                url: self.newLink.url
+                                url: self.newLink.url,
+                                description: description
                             })
                             if (self.serverAvailable) {
                                 self.$http.get('server/server.php', {
                                     params: {
                                         categoryName: categoryName,
                                         linkName: self.newLink.name,
-                                        linkUrl: self.newLink.url
+                                        linkUrl: self.newLink.url,
+                                        linkDescription: description
                                     }
                                 }).then(response => {
                                 }, response => {
@@ -177,7 +217,8 @@
                     open: false,
                     name: null,
                     category: null,
-                    url: null
+                    url: null,
+                    description: null
                 }
             },
             addError (message, delay) {
