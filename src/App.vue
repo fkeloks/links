@@ -118,35 +118,7 @@
                     url: null,
                     description: null
                 },
-                links: [
-                    {
-                        name: 'cat1',
-                        data: [
-                            {
-                                name: 'link1',
-                                url: '',
-                                description: 'Ma superbe description'
-                            },
-                            {
-                                name: 'link2',
-                                url: ''
-                            },
-                            {
-                                name: 'link3',
-                                url: ''
-                            }
-                        ]
-                    },
-                    {
-                        name: 'cat2',
-                        data: [
-                            {
-                                name: 'link2',
-                                url: ''
-                            }
-                        ]
-                    }
-                ],
+                links: [],
                 serverAvailable: false,
                 timeout: null,
                 confirmAlert: false,
