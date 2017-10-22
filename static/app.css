@@ -5,6 +5,16 @@ body {
     background-color: #F1F3F6;
 }
 
+@media (min-width: 1200px) {
+    .container {
+        width: 80%;
+    }
+}
+
+* {
+    outline: none;
+}
+
 a {
     color: #34495e;
     text-decoration: none;
