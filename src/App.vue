@@ -7,10 +7,10 @@
         <div class="panel panel-default">
             <div class="panel-heading">
                 <a href="#" @click.prevent="newLink.open = !newLink.open">Ajouter un nouveau lien</a>
-                <button class="btn btn-xs btn-default pull-right" @click.prevent="changeVersion()" v-if="!adminVersion">
+                <button class="btn btn-xs btn-default pull-right hidden-xs" @click.prevent="changeVersion()" v-if="!adminVersion">
                     Afficher la version admin
                 </button>
-                <button class="btn btn-xs btn-default pull-right" @click.prevent="changeVersion()" v-if="adminVersion">
+                <button class="btn btn-xs btn-default pull-right hidden-xs" @click.prevent="changeVersion()" v-if="adminVersion">
                     Cacher la version admin
                 </button>
             </div>
@@ -53,6 +53,17 @@
                     <button class="btn btn-default" @click.prevent="newLink.open = !newLink.open">Annuler</button>
                 </div>
             </transition>
+        </div>
+
+        <div class="visible-xs">
+            <hr>
+            <button class="btn btn-block btn-sm btn-default" @click.prevent="changeVersion()" v-if="!adminVersion">
+                Afficher la version admin
+            </button>
+            <button class="btn btn-block btn-sm btn-default" @click.prevent="changeVersion()" v-if="adminVersion">
+                Cacher la version admin
+            </button>
+            <hr>
         </div>
 
         <transition name="fade">
