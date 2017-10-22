@@ -1,6 +1,7 @@
 <template>
     <div>
         <h1>Ma liste de liens</h1>
+        <h2>L'accès à cette liste est reglementé pour des raisons de sécurité.</h2>
         <hr>
 
         <div class="panel panel-default">
@@ -64,9 +65,16 @@
 
         <transition name="fade">
             <div class="alert alert-warning" v-if="confirmAlert">
-                Confirmez-vous la suppression de la catégorie "{{ confirmElement }}" ?
+                <div v-if="confirmElement.type === 'link'">
+                    Confirmez-vous la suppression du lien "{{ confirmElement.element }}" ?
+                </div>
+                <div v-if="confirmElement.type === 'category'">
+                    Confirmez-vous la suppression de la catégorie "{{ confirmElement.element }}" ?
+                </div>
                 <hr>
-                <button class="btn btn-sm btn-warning" @click.prevent="deleteCategory()">Confirmer</button>
+                <button class="btn btn-sm btn-warning" @click.prevent="confirmElement.type === 'link' ? deleteLink() : deleteCategory()">
+                    Confirmer
+                </button>
                 <button class="btn btn-sm btn-default" @click.prevent="confirmAlert = false">Annuler</button>
             </div>
         </transition>
@@ -76,17 +84,21 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         {{ category.name }}
-                        <button class="btn btn-xs btn-warning pull-right" v-if="adminVersion" @click.prevent="confirmAlert = true; confirmElement = category.name">
+                        <button class="btn btn-xs btn-warning pull-right" v-if="adminVersion" @click.prevent="confirmAlert = true; confirmElement.type = 'category'; confirmElement.element = category.name">
                             Supprimer la catégorie
                         </button>
                     </div>
                     <div class="panel-body">
                         <ul>
-                            <li v-for="link in category.data">
+                            <li v-for="link in category.data" class="text-inline" @mouseover="hoverElement = link">
                                 <a :href="link.url" target="_blank">{{ link.name }}</a>
                                 <span class="text-muted" v-if="link.description != null">
                                     ( {{ link.description }} )
                                 </span>
+                                <button type="button" class="close" v-if="hoverElement === link" @click.prevent="confirmAlert = true; confirmElement.type = 'link'; confirmElement.element = link.name">
+                                    &times;
+                                </button>
+                                <div class="clearfix"></div>
                             </li>
                             <li v-if="category.data.length === 0">Aucun lien disponible dans cette catégorie...</li>
                         </ul>
@@ -97,12 +109,32 @@
                 <h4>Aucune catégorie de lien ne semble disponible.</h4>
             </div>
         </div>
+
+        <div class="panel panel-default" v-if="serverAvailable">
+            <div class="panel-heading">Importation | Exportation</div>
+            <div class="panel-body">
+                <button class="btn btn-default" @click.prevent="addError('Fonction non mise en place', 3000)">
+                    Importer depuis JSON
+                </button>
+                <button class="btn btn-default" @click.prevent="exportJson()">Exporter en JSON</button>
+                <transition name="fade">
+                    <div v-if="exportElement.data != null">
+                        <hr>
+                        <pre>{{ exportElement }}</pre>
+                        <div class="pull-right">
+                            <button class="btn btn-default" @click.prevent="exportElement = {type: null,data: null}">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+        </div>
     </div>
 </template>
 
 <script>
     export default {
-        name: 'app',
         data () {
             return {
                 errors: [],
@@ -120,14 +152,24 @@
                 },
                 links: [],
                 serverAvailable: false,
+                serverUrl: null,
                 timeout: null,
+                hoverElement: null,
                 confirmAlert: false,
-                confirmElement: null
+                confirmElement: {
+                    type: null,
+                    element: null
+                },
+                exportElement: {
+                    type: null,
+                    data: null
+                }
             }
         },
         mounted () {
-            this.$http.get('server/server.php').then(response => {
-                this.links = response.body
+            this.serverUrl = (process.env.NODE_ENV) === 'development' ? 'http://localhost/Projets/links/server/server.php' : 'server/server.php'
+            this.$http.get(this.serverUrl).then(response => {
+                this.links = Object.values(response.body)
                 this.serverAvailable = true
             }, response => {
                 this.addError('Attention : le serveur de données est indisponible. Les données ne peuvent pas être sauvegardées.', 15000)
@@ -160,20 +202,21 @@
                 return categoryName
             },
             deleteCategory () {
-                if (this.confirmElement != null) {
+                if (this.confirmElement.element != null) {
                     let self = this
                     this.links = this.links.filter(function (category) {
-                        return (category.name != self.confirmElement) ? category : null
+                        return (category.name != self.confirmElement.element) ? category : null
                     })
                     if (this.serverAvailable) {
-                        this.$http.get('server/server.php', {
+                        this.$http.get(this.serverUrl, {
                             params: {
-                                deleteCategory: this.confirmElement,
+                                deleteCategory: this.confirmElement.element,
                             }
                         })
                     }
                     this.confirmAlert = false
-                    this.confirmElement = null
+                    this.confirmElement.type = null
+                    this.confirmElement.element = null
                 }
             },
             categoryExist (category) {
@@ -218,7 +261,7 @@
                                 description: description
                             })
                             if (self.serverAvailable) {
-                                self.$http.get('server/server.php', {
+                                self.$http.get(self.serverUrl, {
                                     params: {
                                         categoryName: categoryName,
                                         linkName: self.newLink.name,
@@ -236,6 +279,13 @@
                 } else {
                     this.addError('Les champs "Nom du lien", "Lien correspondant" et "Catégorie" doivent êtres renseignés.', 5000)
                 }
+            },
+            deleteLink (linkId) {
+                this.addError('Fonction non-disponible pour le moment', 2000)
+            },
+            exportJson () {
+                this.exportElement.type = 'JSON'
+                this.exportElement.data = JSON.stringify(this.links)
             },
             resetFields () {
                 this.newLink = {
